@@ -3,13 +3,39 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Smart Health PHC/CHC operations API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: District and facility summaries
+  - name: centres
+    description: Health centre directory
+  - name: inventory
+    description: Medicine stock and movements
+  - name: patients
+    description: Aggregated patient visits
+  - name: beds
+    description: Bed capacity and occupancy
+  - name: attendance
+    description: Staff and attendance
+  - name: tests
+    description: Diagnostic services
+  - name: alerts
+    description: Operational alerts
+  - name: recommendations
+    description: Resource redistribution approvals
+  - name: forecasts
+    description: Demand forecasting
+  - name: assistant
+    description: Data-grounded operational questions
+  - name: users
+    description: User roles
+  - name: reports
+    description: Downloadable operational reports
 paths:
   /healthz:
     get:
@@ -24,7 +50,541 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [users]
+      summary: Return the current authenticated application user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "401":
+          description: Sign-in required
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      parameters:
+        - name: centreId
+          in: query
+          schema: { type: string }
+        - name: facilityType
+          in: query
+          schema: { type: string, enum: [PHC, CHC] }
+      responses:
+        "200":
+          description: District dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /centres:
+    get:
+      operationId: listCentres
+      tags: [centres]
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - name: type
+          in: query
+          schema: { type: string, enum: [PHC, CHC] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Matching centres
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CentreList"
+    post:
+      operationId: createCentre
+      tags: [centres]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CentreInput" }
+      responses:
+        "201":
+          description: Centre created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Centre" }
+  /centres/{id}:
+    get:
+      operationId: getCentre
+      tags: [centres]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Centre details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Centre" }
+        "404":
+          description: Centre not found
+    patch:
+      operationId: updateCentre
+      tags: [centres]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CentreUpdate" }
+      responses:
+        "200":
+          description: Updated centre
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Centre" }
+    delete:
+      operationId: deleteCentre
+      tags: [centres]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Centre removed }
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - name: centreId
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [all, low, expiring, healthy] }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Medicine stock records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryList" }
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryInput" }
+      responses:
+        "201":
+          description: Medicine added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryItem" }
+  /inventory/{id}:
+    patch:
+      operationId: updateInventoryItem
+      tags: [inventory]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryUpdate" }
+      responses:
+        "200":
+          description: Updated medicine record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryItem" }
+    delete:
+      operationId: deleteInventoryItem
+      tags: [inventory]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Medicine removed }
+  /inventory/movements:
+    get:
+      operationId: listInventoryMovements
+      tags: [inventory]
+      parameters:
+        - name: centreId
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Stock movement history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MovementList" }
+  /inventory/{id}/movements:
+    post:
+      operationId: createInventoryMovement
+      tags: [inventory]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MovementInput" }
+      responses:
+        "201":
+          description: Movement recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryMovement" }
+  /patients/visits:
+    get:
+      operationId: listPatientVisits
+      tags: [patients]
+      parameters:
+        - name: centreId
+          in: query
+          schema: { type: string }
+        - name: period
+          in: query
+          schema: { type: string, enum: [day, week, month] }
+      responses:
+        "200":
+          description: Aggregated visits only; no patient identifiers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VisitList" }
+    post:
+      operationId: createPatientVisitAggregate
+      tags: [patients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VisitInput" }
+      responses:
+        "201":
+          description: Visit aggregate recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VisitAggregate" }
+  /beds:
+    get:
+      operationId: listBeds
+      tags: [beds]
+      parameters:
+        - name: centreId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Bed capacity by centre and bed type
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BedList" }
+  /beds/{id}:
+    patch:
+      operationId: updateBed
+      tags: [beds]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BedUpdate" }
+      responses:
+        "200":
+          description: Updated bed status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bed" }
+  /staff:
+    get:
+      operationId: listStaff
+      tags: [attendance]
+      parameters:
+        - name: centreId
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Staff records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffList" }
+    post:
+      operationId: createStaff
+      tags: [attendance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StaffInput" }
+      responses:
+        "201":
+          description: Staff member added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffMember" }
+  /attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      parameters:
+        - name: centreId
+          in: query
+          schema: { type: string }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttendanceList" }
+    post:
+      operationId: recordAttendance
+      tags: [attendance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AttendanceInput" }
+      responses:
+        "201":
+          description: Attendance recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttendanceRecord" }
+  /tests:
+    get:
+      operationId: listDiagnosticTests
+      tags: [tests]
+      parameters:
+        - name: centreId
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Diagnostic service availability
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestList" }
+    post:
+      operationId: createDiagnosticTest
+      tags: [tests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TestInput" }
+      responses:
+        "201":
+          description: Diagnostic service added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiagnosticTest" }
+  /tests/{id}:
+    patch:
+      operationId: updateDiagnosticTest
+      tags: [tests]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TestUpdate" }
+      responses:
+        "200":
+          description: Updated diagnostic service
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiagnosticTest" }
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, acknowledged, resolved, all] }
+        - name: severity
+          in: query
+          schema: { type: string, enum: [critical, warning, info] }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Operational alerts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertList" }
+  /alerts/{id}:
+    patch:
+      operationId: updateAlert
+      tags: [alerts]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AlertUpdate" }
+      responses:
+        "200":
+          description: Updated alert
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alert" }
+  /recommendations:
+    get:
+      operationId: listRecommendations
+      tags: [recommendations]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, rejected, all] }
+      responses:
+        "200":
+          description: Explainable resource transfer suggestions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecommendationList" }
+  /recommendations/{id}:
+    patch:
+      operationId: decideRecommendation
+      tags: [recommendations]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecommendationDecision" }
+      responses:
+        "200":
+          description: Approval decision recorded; no transfer is executed automatically
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recommendation" }
+  /forecasts:
+    get:
+      operationId: getDemandForecasts
+      tags: [forecasts]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, enum: [7, 30, 90], default: 7 }
+        - name: centreId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Transparent stock-demand estimates based on recorded consumption
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ForecastList" }
+  /assistant:
+    post:
+      operationId: askAssistant
+      tags: [assistant]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssistantQuestion" }
+      responses:
+        "200":
+          description: Concise answer grounded in authorized operational data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssistantAnswer" }
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      responses:
+        "200":
+          description: Application users and assigned roles
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserList" }
+  /users/{id}:
+    patch:
+      operationId: updateUserRole
+      tags: [users]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserRoleUpdate" }
+      responses:
+        "200":
+          description: Updated application role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppUser" }
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [reports]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Authorized application change history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditLogList" }
+  /reports/summary.csv:
+    get:
+      operationId: downloadSummaryReport
+      tags: [reports]
+      responses:
+        "200":
+          description: Downloadable CSV summary
+          content:
+            text/csv:
+              schema: { type: string }
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    Search:
+      name: search
+      in: query
+      schema: { type: string }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +593,463 @@ components:
           type: string
       required:
         - status
+    Role:
+      type: string
+      enum: [district_admin, centre_manager, healthcare_staff, inventory_manager]
+    Centre:
+      type: object
+      required: [id, name, code, type, district, state, address, status, latitude, longitude]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        code: { type: string }
+        type: { type: string, enum: [PHC, CHC] }
+        district: { type: string }
+        state: { type: string }
+        address: { type: string }
+        status: { type: string, enum: [Operational, Needs attention, Offline] }
+        latitude: { type: number }
+        longitude: { type: number }
+        phone: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    CentreInput:
+      type: object
+      required: [name, code, type, district, state, address, latitude, longitude]
+      properties:
+        name: { type: string, minLength: 2 }
+        code: { type: string, minLength: 2 }
+        type: { type: string, enum: [PHC, CHC] }
+        district: { type: string }
+        state: { type: string }
+        address: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        phone: { type: string }
+    CentreUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        code: { type: string }
+        type: { type: string, enum: [PHC, CHC] }
+        district: { type: string }
+        state: { type: string }
+        address: { type: string }
+        status: { type: string, enum: [Operational, Needs attention, Offline] }
+        latitude: { type: number }
+        longitude: { type: number }
+        phone: { type: ["string", "null"] }
+    CentreList:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Centre" } }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+    InventoryItem:
+      type: object
+      required: [id, centreId, medicine, category, batch, quantity, minimumStock, unit, expiryDate, supplier, updatedAt]
+      properties:
+        id: { type: string }
+        centreId: { type: string }
+        medicine: { type: string }
+        category: { type: string }
+        batch: { type: string }
+        quantity: { type: integer }
+        minimumStock: { type: integer }
+        unit: { type: string }
+        expiryDate: { type: string, format: date }
+        supplier: { type: string }
+        updatedAt: { type: string, format: date-time }
+    InventoryInput:
+      type: object
+      required: [centreId, medicine, category, batch, quantity, minimumStock, unit, expiryDate, supplier]
+      properties:
+        centreId: { type: string }
+        medicine: { type: string, minLength: 2 }
+        category: { type: string }
+        batch: { type: string }
+        quantity: { type: integer, minimum: 0 }
+        minimumStock: { type: integer, minimum: 0 }
+        unit: { type: string }
+        expiryDate: { type: string, format: date }
+        supplier: { type: string }
+    InventoryUpdate:
+      type: object
+      properties:
+        medicine: { type: string }
+        category: { type: string }
+        batch: { type: string }
+        quantity: { type: integer, minimum: 0 }
+        minimumStock: { type: integer, minimum: 0 }
+        unit: { type: string }
+        expiryDate: { type: string, format: date }
+        supplier: { type: string }
+    InventoryList:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/InventoryItem" } }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+    InventoryMovement:
+      type: object
+      required: [id, inventoryId, centreId, type, quantity, note, createdAt]
+      properties:
+        id: { type: string }
+        inventoryId: { type: string }
+        centreId: { type: string }
+        type: { type: string, enum: [receipt, consumption, transfer_in, transfer_out, adjustment] }
+        quantity: { type: integer }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }
+        medicine: { type: string }
+        centreName: { type: string }
+    MovementInput:
+      type: object
+      required: [type, quantity, note]
+      properties:
+        type: { type: string, enum: [receipt, consumption, adjustment] }
+        quantity: { type: integer, minimum: 1 }
+        note: { type: string, minLength: 2 }
+    MovementList:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/InventoryMovement" } }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+    VisitAggregate:
+      type: object
+      required: [id, centreId, date, department, visits]
+      properties:
+        id: { type: string }
+        centreId: { type: string }
+        date: { type: string, format: date }
+        department: { type: string }
+        visits: { type: integer }
+    VisitInput:
+      type: object
+      required: [centreId, date, department, visits]
+      properties:
+        centreId: { type: string }
+        date: { type: string, format: date }
+        department: { type: string }
+        visits: { type: integer, minimum: 0 }
+    VisitList:
+      type: object
+      required: [items, totalVisits]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/VisitAggregate" } }
+        totalVisits: { type: integer }
+    Bed:
+      type: object
+      required: [id, centreId, centreName, type, total, occupied, outOfService]
+      properties:
+        id: { type: string }
+        centreId: { type: string }
+        centreName: { type: string }
+        type: { type: string }
+        total: { type: integer }
+        occupied: { type: integer }
+        outOfService: { type: integer }
+    BedUpdate:
+      type: object
+      properties:
+        total: { type: integer, minimum: 0 }
+        occupied: { type: integer, minimum: 0 }
+        outOfService: { type: integer, minimum: 0 }
+    BedList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Bed" } }
+    StaffMember:
+      type: object
+      required: [id, centreId, name, role, department, shift, scheduled]
+      properties:
+        id: { type: string }
+        centreId: { type: string }
+        name: { type: string }
+        role: { type: string }
+        department: { type: string }
+        shift: { type: string }
+        scheduled: { type: boolean }
+        phone: { type: ["string", "null"] }
+    StaffInput:
+      type: object
+      required: [centreId, name, role, department, shift]
+      properties:
+        centreId: { type: string }
+        name: { type: string }
+        role: { type: string }
+        department: { type: string }
+        shift: { type: string }
+        scheduled: { type: boolean, default: true }
+        phone: { type: string }
+    StaffList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/StaffMember" } }
+    AttendanceRecord:
+      type: object
+      required: [id, staffId, centreId, staffName, date, status]
+      properties:
+        id: { type: string }
+        staffId: { type: string }
+        centreId: { type: string }
+        staffName: { type: string }
+        date: { type: string, format: date }
+        status: { type: string, enum: [present, absent, leave, scheduled] }
+        checkIn: { type: ["string", "null"], format: date-time }
+        checkOut: { type: ["string", "null"], format: date-time }
+    AttendanceInput:
+      type: object
+      required: [staffId, date, status]
+      properties:
+        staffId: { type: string }
+        date: { type: string, format: date }
+        status: { type: string, enum: [present, absent, leave, scheduled] }
+        checkIn: { type: ["string", "null"], format: date-time }
+        checkOut: { type: ["string", "null"], format: date-time }
+    AttendanceList:
+      type: object
+      required: [items, present, scheduled]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AttendanceRecord" } }
+        present: { type: integer }
+        scheduled: { type: integer }
+    DiagnosticTest:
+      type: object
+      required: [id, centreId, centreName, name, category, status, capacityPerDay, completedToday, equipment, consumables]
+      properties:
+        id: { type: string }
+        centreId: { type: string }
+        centreName: { type: string }
+        name: { type: string }
+        category: { type: string }
+        status: { type: string, enum: [Available, Limited, Unavailable] }
+        capacityPerDay: { type: integer }
+        completedToday: { type: integer }
+        equipment: { type: string }
+        consumables: { type: string }
+        interruptionNote: { type: ["string", "null"] }
+    TestInput:
+      type: object
+      required: [centreId, name, category, status, capacityPerDay, equipment, consumables]
+      properties:
+        centreId: { type: string }
+        name: { type: string }
+        category: { type: string }
+        status: { type: string, enum: [Available, Limited, Unavailable] }
+        capacityPerDay: { type: integer, minimum: 0 }
+        equipment: { type: string }
+        consumables: { type: string }
+        interruptionNote: { type: string }
+    TestUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        category: { type: string }
+        status: { type: string, enum: [Available, Limited, Unavailable] }
+        capacityPerDay: { type: integer, minimum: 0 }
+        completedToday: { type: integer, minimum: 0 }
+        equipment: { type: string }
+        consumables: { type: string }
+        interruptionNote: { type: ["string", "null"] }
+    TestList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/DiagnosticTest" } }
+    Alert:
+      type: object
+      required: [id, centreId, centreName, title, detail, severity, status, createdAt]
+      properties:
+        id: { type: string }
+        centreId: { type: string }
+        centreName: { type: string }
+        title: { type: string }
+        detail: { type: string }
+        severity: { type: string, enum: [critical, warning, info] }
+        status: { type: string, enum: [open, acknowledged, resolved] }
+        createdAt: { type: string, format: date-time }
+    AlertUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [acknowledged, resolved] }
+    AlertList:
+      type: object
+      required: [items, total, counts]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Alert" } }
+        total: { type: integer }
+        counts:
+          type: object
+          required: [critical, warning, info]
+          properties:
+            critical: { type: integer }
+            warning: { type: integer }
+            info: { type: integer }
+    Recommendation:
+      type: object
+      required: [id, medicine, quantity, sourceCentreId, sourceCentreName, targetCentreId, targetCentreName, reason, status, createdAt]
+      properties:
+        id: { type: string }
+        medicine: { type: string }
+        quantity: { type: integer }
+        sourceCentreId: { type: string }
+        sourceCentreName: { type: string }
+        targetCentreId: { type: string }
+        targetCentreName: { type: string }
+        reason: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+        expiryDate: { type: ["string", "null"], format: date }
+    RecommendationDecision:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [approved, rejected] }
+        note: { type: string }
+    RecommendationList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Recommendation" } }
+    Forecast:
+      type: object
+      required: [id, centreId, centreName, medicine, currentStock, averageDailyUse, predictedDemand, daysUntilStockout, recommendedReorder, confidence, horizonDays, limitation]
+      properties:
+        id: { type: string }
+        centreId: { type: string }
+        centreName: { type: string }
+        medicine: { type: string }
+        currentStock: { type: integer }
+        averageDailyUse: { type: number }
+        predictedDemand: { type: integer }
+        daysUntilStockout: { type: integer }
+        recommendedReorder: { type: integer }
+        confidence: { type: string, enum: [high, medium, low] }
+        horizonDays: { type: integer }
+        limitation: { type: string }
+    ForecastList:
+      type: object
+      required: [items, horizonDays, methodology]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Forecast" } }
+        horizonDays: { type: integer }
+        methodology: { type: string }
+    AssistantQuestion:
+      type: object
+      required: [question, language]
+      properties:
+        question: { type: string, minLength: 2, maxLength: 500 }
+        language: { type: string, enum: [en, hi] }
+    AssistantAnswer:
+      type: object
+      required: [answer, language, sources, asOf, uncertainty]
+      properties:
+        answer: { type: string }
+        language: { type: string, enum: [en, hi] }
+        sources: { type: array, items: { type: string } }
+        asOf: { type: string, format: date-time }
+        uncertainty: { type: string }
+    AppUser:
+      type: object
+      required: [id, name, email, role, status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        status: { type: string, enum: [active, pending] }
+        centreId: { type: ["string", "null"] }
+    UserRoleUpdate:
+      type: object
+      required: [role, centreId]
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+        centreId: { type: ["string", "null"] }
+    UserList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AppUser" } }
+    AuditLog:
+      type: object
+      required: [id, actorId, action, entity, entityId, details, createdAt]
+      properties:
+        id: { type: string }
+        actorId: { type: string }
+        action: { type: string }
+        entity: { type: string }
+        entityId: { type: string }
+        details: { type: string }
+        createdAt: { type: string, format: date-time }
+    AuditLogList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AuditLog" } }
+    Dashboard:
+      type: object
+      required: [totals, visitTrend, centreStatus, inventoryStatus, recentAlerts, recentActivity, mapCentres]
+      properties:
+        totals:
+          type: object
+          required: [centres, visitsToday, availableBeds, stockOuts, doctorAttendance]
+          properties:
+            centres: { type: integer }
+            visitsToday: { type: integer }
+            availableBeds: { type: integer }
+            stockOuts: { type: integer }
+            doctorAttendance: { type: number, nullable: true }
+        visitTrend:
+          type: array
+          items:
+            type: object
+            required: [date, visits]
+            properties:
+              date: { type: string }
+              visits: { type: integer }
+        centreStatus:
+          type: array
+          items:
+            type: object
+            required: [centreId, name, type, visits, bedsAvailable, attendance, stockStatus]
+            properties:
+              centreId: { type: string }
+              name: { type: string }
+              type: { type: string }
+              visits: { type: integer }
+              bedsAvailable: { type: integer }
+              attendance: { type: number, nullable: true }
+              stockStatus: { type: string }
+        inventoryStatus:
+          type: array
+          items:
+            type: object
+            required: [name, healthy, low, critical]
+            properties:
+              name: { type: string }
+              healthy: { type: integer }
+              low: { type: integer }
+              critical: { type: integer }
+        recentAlerts: { type: array, items: { $ref: "#/components/schemas/Alert" } }
+        recentActivity:
+          type: array
+          items:
+            type: object
+            required: [id, text, time, kind]
+            properties:
+              id: { type: string }
+              text: { type: string }
+              time: { type: string, format: date-time }
+              kind: { type: string }
+        mapCentres: { type: array, items: { $ref: "#/components/schemas/Centre" } }
 

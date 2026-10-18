@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Smart Health"
+description = "A responsive operations platform for PHC and CHC teams to monitor medicine inventory, patient demand, beds, staff attendance, diagnostic services, alerts, and district-level resource recommendations."
+version = "1.0.0"
+id = "artifacts/smart-health"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26268
+
+[services.development]
+run = "pnpm --filter @workspace/smart-health run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/smart-health", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/smart-health/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26268"
+BASE_PATH = "/"
