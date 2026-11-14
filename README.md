@@ -50,50 +50,7 @@ Required env: DATABASE_URL — Postgres connection string
 > **Note:** The features above describe the intended product capabilities. Actual functionality depends on the implementation of the frontend, API, database, and authentication services.
 
 ---
-
-## 🛠️ Tech Stack
-
-### Frontend
-- React.js
-- TypeScript 5.9
-- HTML5
-- CSS3
-- API hooks generated from the OpenAPI specification
-
-### Backend
-- Node.js 24
-- TypeScript
-- Express 5
-- REST API architecture
-- OpenAPI API specification
-
-### Database
-- PostgreSQL
-- Drizzle ORM
-- Drizzle Zod integration
-- Zod v4 for data validation
-
-### API Development
-- OpenAPI specification
-- Orval for API code generation
-- Generated API hooks and Zod schemas
-
-### Build Tools
-- pnpm workspaces
-- esbuild
-- TypeScript compiler
-
----
-
-## 📋 Prerequisites
-
-Before running the project, make sure you have installed:
-
-- Node.js 24
-- pnpm
-- PostgreSQL
-- Git
-
+ 
 Check your installed versions:
 
 ```bash
